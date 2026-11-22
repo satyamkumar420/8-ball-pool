@@ -5,35 +5,12 @@ import { useState, useEffect, useCallback } from "react";
 import enMessages from "../languages/en.json";
 
 interface CustomWindow extends Window {
-  ytgame?: {
-    system: {
-      getLanguage: () => string;
-    };
-  };
   gdData?: {
     language?: string;
     lang?: string;
   };
   appLanguage?: string;
 }
-
-const getYouTubeLanguage = (): string | null => {
-  try {
-    if (typeof window !== "undefined") {
-      const customWindow = window as unknown as CustomWindow;
-      if (customWindow.ytgame && customWindow.ytgame.system) {
-        return customWindow.ytgame.system.getLanguage();
-      }
-      if (customWindow.gdData) {
-        const lang = customWindow.gdData.language || customWindow.gdData.lang;
-        if (lang) return lang;
-      }
-    }
-  } catch {
-    // YouTube SDK not available
-  }
-  return null;
-};
 
 const normalizeLanguage = (lang: string): string => {
   if (!lang || typeof lang !== "string") return "en";
@@ -99,7 +76,6 @@ export default function IntlProvider({ children }: { children: React.ReactNode }
     const initialLang =
       savedLang ||
       customWindow.appLanguage ||
-      getYouTubeLanguage() ||
       (typeof navigator !== "undefined" ? navigator.language : "en");
 
     if (initialLang && initialLang !== "en") {

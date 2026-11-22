@@ -5,7 +5,6 @@
 // ============================================================
 
 import { ICollisionEvent, SoundKey } from "@/lib/types";
-import * as yt from "@/utils/youtubeSdk";
 
 /**
  * SoundManager uses procedural synthesis via Web Audio API.
@@ -133,7 +132,7 @@ export class SoundManager {
       if (!this.ctx) {
         this.ctx = new AudioContextClass();
         this.masterGain = this.ctx.createGain();
-        const shouldBeMuted = this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled());
+        const shouldBeMuted = this.isMuted;
         this.masterGain.gain.value = shouldBeMuted ? 0 : 1.0;
         this.masterGain.connect(this.ctx.destination);
         this.loadSoundAssets();
@@ -150,7 +149,7 @@ export class SoundManager {
   /** Set mute state */
   setMuted(muted: boolean): void {
     this.isMuted = muted;
-    const shouldBeMuted = this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled());
+    const shouldBeMuted = this.isMuted;
     if (this.masterGain) {
       this.masterGain.gain.setValueAtTime(
         shouldBeMuted ? 0 : 1.0,
@@ -217,7 +216,7 @@ export class SoundManager {
     }
 
     this.isBgMusicPlaying = true;
-    const shouldBeMuted = this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled());
+    const shouldBeMuted = this.isMuted;
 
     if (!shouldBeMuted && this.bgMusicAudio) {
       const playPromise = this.bgMusicAudio.play();
@@ -262,7 +261,7 @@ export class SoundManager {
    * Resume background music if active and not muted.
    */
   resumeBgMusic(): void {
-    const shouldBeMuted = this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled());
+    const shouldBeMuted = this.isMuted;
     if (this.isBgMusicPlaying && this.bgMusicAudio && !shouldBeMuted) {
       this.bgMusicAudio.play().catch(() => {});
     }
@@ -270,7 +269,6 @@ export class SoundManager {
 
   play(key: SoundKey, volumeScale: number = 1.0): void {
     if (this.isMuted) return;
-    if (yt.isSdkLoaded() && !yt.isAudioEnabled()) return;
     if (!this.initContext() || !this.ctx || !this.masterGain) return;
 
     // Throttle high-frequency identical sounds (e.g. rapid collisions within 25ms)
@@ -329,7 +327,7 @@ export class SoundManager {
    * Update the continuous rolling sound (ludkana) based on the maximum ball speed.
    */
   updateRollingSound(maxSpeed: number): void {
-    if (this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled())) {
+    if (this.isMuted) {
       this.stopRollingSound();
       return;
     }
@@ -416,7 +414,6 @@ export class SoundManager {
    */
   handleCollisionEvents(events: ICollisionEvent[]): void {
     if (this.isMuted || events.length === 0) return;
-    if (yt.isSdkLoaded() && !yt.isAudioEnabled()) return;
 
     // Limit simultaneous sounds per frame to prevent audio clipping during break shots
     let soundCount = 0;
@@ -452,7 +449,7 @@ export class SoundManager {
    * Play a short rolling/sliding sound inside the ball tube when a ball is pocketed.
    */
   playTubeRoll(durationMs: number = 400, volume: number = 1.0): void {
-    if (this.isMuted || (yt.isSdkLoaded() && !yt.isAudioEnabled())) return;
+    if (this.isMuted) return;
     if (!this.initContext() || !this.ctx || !this.masterGain) return;
 
     const rollingBuffer = this.audioBuffers.get("rolling");

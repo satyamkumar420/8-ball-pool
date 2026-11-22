@@ -25,12 +25,6 @@ import { TUTORIAL_STEPS } from "@/lib/game/TutorialManager";
 
 import { CANVAS_TOTAL_HEIGHT, TOTAL_GAME_WIDTH } from "@/lib/constants/table";
 
-// YouTube Playables SDK + SaveManager
-import {
-  initYouTubeSdk,
-  notifyGameReady,
-  requestInterstitialAd,
-} from "@/utils/youtubeSdk";
 import { saveManager } from "@/lib/game/SaveManager";
 import { soundManager } from "@/lib/game/SoundManager";
 
@@ -42,8 +36,6 @@ export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
-  const sdkInitedRef = useRef(false);
-  const gameReadyCalledRef = useRef(false);
   const pendingGameRef = useRef<{
     difficulty: Difficulty;
     mode: GameMode;
@@ -87,10 +79,6 @@ export const GameCanvas: React.FC = () => {
   const handleLoadingComplete = useCallback(() => {
     setIsLoading(false);
     soundManager.startBgMusic();
-    if (!gameReadyCalledRef.current) {
-      gameReadyCalledRef.current = true;
-      notifyGameReady();
-    }
   }, []);
 
   const [spin, setSpin] = useState({ x: 0, y: 0 });
@@ -221,39 +209,23 @@ export const GameCanvas: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // ─── 1. Init YouTube Playables SDK (calls firstFrameReady internally) ───
-    const initSdk = async () => {
-      if (sdkInitedRef.current) return;
-      sdkInitedRef.current = true;
+    // ─── 1. Load persistent settings & setup visibility listener ───
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        engineRef.current?.stop();
+        soundManager.pauseBgMusic();
+      } else {
+        const phase = engineRef.current?.getPhase();
+        if (phase === GamePhase.MENU) {
+          soundManager.resumeBgMusic();
+        } else if (phase && phase !== GamePhase.GAME_OVER) {
+          engineRef.current?.resume();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
-      await initYouTubeSdk({
-        onAudioEnabledChanged: (enabled) => {
-          // Sync YouTube audio state with game engine
-          if (engineRef.current) {
-            engineRef.current.setSoundMuted(!enabled);
-          }
-          saveManager.set("soundEnabled", enabled);
-        },
-        onPause: () => {
-          // YouTube paused the game — stop engine loop & pause music
-          engineRef.current?.stop();
-          soundManager.pauseBgMusic();
-        },
-        onResume: () => {
-          // YouTube resumed — restart loop if game is active, or resume music if in main menu
-          const phase = engineRef.current?.getPhase();
-          if (phase === GamePhase.MENU) {
-            soundManager.resumeBgMusic();
-          } else if (
-            phase &&
-            phase !== GamePhase.GAME_OVER
-          ) {
-            engineRef.current?.resume();
-          }
-        },
-      });
-
-      // ─── 2. Load persistent settings ───
+    const initSettings = async () => {
       const settings = await saveManager.init();
       setPersistentStats({
         winCount: settings.winCount,
@@ -275,13 +247,12 @@ export const GameCanvas: React.FC = () => {
         );
       }
 
-      // ─── 3. Apply loaded settings to engine ───
       if (engineRef.current) {
         engineRef.current.setSoundMuted(!settings.soundEnabled);
       }
     };
 
-    initSdk();
+    initSettings();
 
     // ─── 4. Create Game Engine ───
     const engine = new GameEngine(canvas);
@@ -326,6 +297,7 @@ export const GameCanvas: React.FC = () => {
 
     return () => {
       cancelAnimationFrame(rAF);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
       engine.destroy();
@@ -422,9 +394,6 @@ export const GameCanvas: React.FC = () => {
 
   const handleRestart = async () => {
     if (!engineRef.current) return;
-
-    // Show interstitial ad before playing again (no-op if outside Playables env)
-    await requestInterstitialAd();
 
     engineRef.current.startGame(
       uiState.difficulty,

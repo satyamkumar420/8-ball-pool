@@ -30,10 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${oswald.variable} ${outfit.variable} h-full antialiased`}
     >
-      <head>
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="https://www.youtube.com/game_api/v1" />
-      </head>
+      <head />
       <body className="min-h-full flex flex-col">
         <IntlProvider>{children}</IntlProvider>
       </body>

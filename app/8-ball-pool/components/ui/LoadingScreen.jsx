@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 
 import { useTranslations } from "next-intl";
-import Image from "next/image";
 
 export default function LoadingScreen({ onComplete }) {
   const tGame = useTranslations("Pool8Ball");
@@ -72,45 +71,6 @@ export default function LoadingScreen({ onComplete }) {
           pointerEvents: fadeOut ? "none" : "auto",
         }}
       >
-        {/* Branding */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            marginBottom: "26px",
-            animation: "fadeUp 1s ease",
-          }}
-        >
-          <Image
-            src="./logo.png"
-            width={120}
-            height={120}
-            alt="Cloudz Fun"
-            style={{
-              width: "72px",
-              height: "72px",
-              objectFit: "contain",
-              marginBottom: "10px",
-              filter: "drop-shadow(0 0 12px rgba(255,140,0,0.4))",
-            }}
-          />
-
-          <h1
-            style={{
-              color: "#fff",
-              fontSize: "1.6rem",
-              fontWeight: 900,
-              letterSpacing: "2px",
-              margin: 0,
-              fontFamily: "Poppins, sans-serif",
-            }}
-          >
-            CLOUDZ FUN
-          </h1>
-        </div>
 
         {/* Header */}
         <div style={{ marginBottom: "32px", textAlign: "center" }}>
